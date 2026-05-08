@@ -5,7 +5,7 @@ import qrcode
 from aiogram import Router, F, Bot
 from aiogram.filters import CommandStart, Command
 from aiogram.types import Message, CallbackQuery, BufferedInputFile
-from sqlalchemy import select, funct
+from sqlalchemy import select, func
 
 from app.config import settings
 from app.database import AsyncSessionLocal
