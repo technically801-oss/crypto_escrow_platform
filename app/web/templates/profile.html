@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="section">
+    <div class="card form">
+        <h1>My Profile</h1>
+
+        <p><strong>Name:</strong> {{ user.full_name }}</p>
+        <p><strong>Email:</strong> {{ user.email }}</p>
+        <p><strong>Telegram:</strong> @{{ user.telegram_username }}</p>
+        <p><strong>Role:</strong> {{ user.role }}</p>
+        <p><strong>Balance:</strong> ${{ user.balance }}</p>
+
+        <a class="btn" href="/dashboard">Dashboard</a>
+        <a class="btn outline" href="/logout">Logout</a>
+    </div>
+</section>
+{% endblock %}

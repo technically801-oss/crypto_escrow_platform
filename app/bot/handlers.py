@@ -62,13 +62,11 @@ async def start(message: Message, bot: Bot):
             message.from_user.full_name,
         )
 
-        # Admin
         if is_admin(message.from_user.id):
             user.role = "admin"
             await session.commit()
             return await message.answer("Admin dashboard opened.", reply_markup=admin_menu())
 
-        # If normal /start but username has pending seller offers, show seller offers
         pending_seller_offers = (
             await session.scalars(
                 select(Project)
@@ -95,81 +93,59 @@ async def start(message: Message, bot: Bot):
             await session.commit()
             return
 
-        # Seller direct link: /start seller
         if start_arg == "seller":
             user.role = "seller"
             await session.commit()
-
-            offers = (
-                await session.scalars(
-                    select(Project)
-                    .where(func.lower(Project.seller_telegram_username) == username)
-                    .where(Project.status == "Pending Discussion")
-                    .order_by(Project.created_at.desc())
-                )
-            ).all()
-
-            if offers:
-                for project in offers[:5]:
-                    project.seller_id = user.id
-                    await message.answer(
-                        f"New project offer #{project.id}\n"
-                        f"Type: {project.project_type}\n"
-                        f"Budget: ${project.budget}\n"
-                        f"Timeline: {project.timeline_days} days\n\n"
-                        f"{project.description}",
-                        reply_markup=seller_offer(project.id),
-                    )
-                await session.commit()
-                return
-
             return await message.answer(
-                "Seller account activated. No new offers yet.",
+                "Seller account activated. Click New Offers to view projects.",
                 reply_markup=seller_menu(),
             )
 
-        # Client direct link: /start client
         if start_arg == "client":
             user.role = "client"
             await session.commit()
             return await message.answer(
-                "Client account activated. Create or manage your projects.",
+                "Client account activated.",
                 reply_markup=client_menu(),
             )
 
-        # Project link: /start project_ID
         if start_arg.startswith("project_"):
             pid = int(start_arg.replace("project_", ""))
             project = await session.get(Project, pid)
 
-            if project:
-                if (
-                    project.seller_telegram_username
-                    and project.seller_telegram_username.lower() == username
-                ):
-                    project.seller_id = user.id
-                    user.role = "seller"
-                    await session.commit()
+            if not project:
+                return await message.answer("Project not found.")
 
-                    return await message.answer(
-                        f"New project offer #{project.id}\n"
-                        f"Type: {project.project_type}\n"
-                        f"Budget: ${project.budget}\n"
-                        f"Timeline: {project.timeline_days} days\n\n"
-                        f"{project.description}",
-                        reply_markup=seller_offer(project.id),
-                    )
-
-                project.client_id = user.id if not project.client_id else project.client_id
-                user.role = "client"
+            if project.seller_telegram_username and project.seller_telegram_username.lower() == username:
+                project.seller_id = user.id
+                user.role = "seller"
                 await session.commit()
 
                 return await message.answer(
-                    f"Project #{project.id} created. Waiting for seller response.",
+                    f"New project offer #{project.id}\n"
+                    f"Type: {project.project_type}\n"
+                    f"Budget: ${project.budget}\n"
+                    f"Timeline: {project.timeline_days} days\n\n"
+                    f"{project.description}",
+                    reply_markup=seller_offer(project.id),
+                )
+
+            client = await session.get(User, project.client_id) if project.client_id else None
+
+            if client and client.telegram_username and client.telegram_username.lower() == username:
+                client.telegram_id = message.from_user.id
+                client.role = "client"
+                await session.commit()
+
+                return await message.answer(
+                    f"Project #{project.id} connected to your Telegram account. Waiting for seller response.",
                     reply_markup=client_menu(),
                 )
 
-        # Default menu based on saved role
+            return await message.answer(
+                "This project is not linked to your Telegram username. Please login with the correct client account."
+            )
+
         if user.role == "seller":
             return await message.answer(
                 "Welcome seller. Manage your offers and projects here.",
@@ -331,8 +307,7 @@ async def seller_accept(call: CallbackQuery, bot: Bot):
         )
     else:
         await call.message.answer(
-            "Offer accepted, but client has not started the Telegram bot yet. "
-            "Ask the client to open the bot and send /start."
+            "Offer accepted, but the client has not connected Telegram yet. Ask client to click Continue on Telegram from the website project success page."
         )
 
 

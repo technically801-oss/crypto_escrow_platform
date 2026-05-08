@@ -318,3 +318,24 @@ async def dashboard(
             "bot_username": settings.telegram_bot_username,
         },
     )
+
+@router.get("/profile", response_class=HTMLResponse)
+async def profile(request: Request, db: AsyncSession = Depends(get_db)):
+    login_redirect = require_login(request)
+    if login_redirect:
+        return login_redirect
+
+    user = await current_user(request, db)
+
+    if not user:
+        request.session.clear()
+        return RedirectResponse("/login", status_code=303)
+
+    return templates.TemplateResponse(
+        "profile.html",
+        {
+            "request": request,
+            "user": user,
+            "bot_username": settings.telegram_bot_username,
+        },
+    )
