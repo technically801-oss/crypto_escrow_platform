@@ -1,0 +1,3 @@
+{% extends 'base.html' %}{% block content %}
+<section class="hero"><div class="card"><h1>Project Created Successfully</h1><p>Project #{{project.id}} is now <b>{{project.status}}</b>.</p><p>Client and seller should continue in Telegram bot.</p><a class="btn" href="{{bot_url}}">Continue on Telegram</a><a class="btn secondary" href="/dashboard">Open Dashboard</a></div></section>
+{% endblock %}
