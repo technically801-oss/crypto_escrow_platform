@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<section class="section">
+
+    <div class="card form auth-card">
+
+        <h1>Login</h1>
+
+        <p class="muted">
+            Continue to your escrow dashboard.
+        </p>
+
+        <form method="post" action="/login">
+
+            <div class="field">
+                <label>Email</label>
+                <input
+                    type="email"
+                    name="email"
+                    required
+                    placeholder="you@example.com"
+                >
+            </div>
+
+            <div class="field">
+                <label>Password</label>
+                <input
+                    type="password"
+                    name="password"
+                    required
+                    placeholder="********"
+                >
+            </div>
+
+            <button class="btn" type="submit">
+                Login
+            </button>
+
+        </form>
+
+        <div style="margin-top:20px">
+            <p>
+                Don't have an account?
+                <a href="/signup">Create Account</a>
+            </p>
+        </div>
+
+    </div>
+
+</section>
+
+{% endblock %}
