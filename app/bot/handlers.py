@@ -281,8 +281,11 @@ async def seller_accept(call: CallbackQuery, bot: Bot):
             f"Seller accepted project #{pid}. Please continue to payment.",
             reply_markup=payment_button(pid),
         )
-
-    await call.answer()
+    else:
+        await call.message.answer(
+            "Offer accepted, but client has not started the Telegram bot yet. "
+            "Ask the client to open the bot and send /start."
+        )
 
 
 @router.callback_query(F.data.startswith("seller_decline:"))
