@@ -7,6 +7,12 @@ from app.web.routes import router as web_router
 from app.bot.bot import start_bot
 from app.services.notification_service import start_scheduler
 from sqlalchemy import select
+from starlette.middleware.sessions import SessionMiddleware
+
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.secret_key if hasattr(settings, "secret_key") else "change-this-secret-key",
+)
 
 DEFAULT_SERVICES = ['Website Development', 'Telegram Bot', 'Crypto Project', 'Trading Bot', 'Roblox Game', 'Mobile App']
 

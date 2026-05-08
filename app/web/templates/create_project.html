@@ -1,3 +1,70 @@
-{% extends 'base.html' %}{% block content %}
-<section class="section"><div class="card form"><h1>Create Project Offer</h1><p class="muted">Submit the project here, then continue the full payment and project flow in Telegram.</p><form action="/create-project" method="post" enctype="multipart/form-data"><div class="two"><div class="field"><label>Client Full Name</label><input name="client_name" required></div><div class="field"><label>Client Email</label><input name="client_email" type="email" required></div></div><div class="two"><div class="field"><label>Client Telegram Username</label><input name="client_telegram" placeholder="@client" required></div><div class="field"><label>Seller Telegram Username</label><input name="seller_telegram" placeholder="@seller" required></div></div><div class="two"><div class="field"><label>Project Type</label><select name="project_type">{% for s in services %}<option>{{s.name}}</option>{% endfor %}<option>Other</option></select></div><div class="field"><label>Budget USD</label><input name="budget" type="number" step="0.01" min="1" required></div></div><div class="field"><label>Expected Timeline Days</label><input name="timeline_days" type="number" min="1" value="7" required></div><div class="field"><label>Project Description</label><textarea name="description" required></textarea></div><div class="field"><label>Attachment</label><input name="attachment" type="file"></div><button class="btn" type="submit">Submit Project</button></form></div></section>
+{% extends 'base.html' %}
+
+{% block content %}
+
+<section class="section">
+
+<div class="card form">
+
+<h1>Create Project Offer</h1>
+
+<p class="muted">
+Submit the project here, then continue the full payment and project flow in Telegram.
+</p>
+
+<form action="/create-project" method="post" enctype="multipart/form-data">
+
+<div class="field">
+    <label>Seller Telegram Username</label>
+    <input name="seller_telegram" placeholder="@seller" required>
+</div>
+
+<div class="two">
+
+    <div class="field">
+        <label>Project Type</label>
+
+        <select name="project_type">
+
+            {% for s in services %}
+            <option>{{s.name}}</option>
+            {% endfor %}
+
+            <option>Other</option>
+
+        </select>
+    </div>
+
+    <div class="field">
+        <label>Budget USD</label>
+        <input name="budget" type="number" step="0.01" min="1" required>
+    </div>
+
+</div>
+
+<div class="field">
+    <label>Expected Timeline Days</label>
+    <input name="timeline_days" type="number" min="1" value="7" required>
+</div>
+
+<div class="field">
+    <label>Project Description</label>
+    <textarea name="description" required></textarea>
+</div>
+
+<div class="field">
+    <label>Attachment</label>
+    <input name="attachment" type="file">
+</div>
+
+<button class="btn" type="submit">
+    Submit Project
+</button>
+
+</form>
+
+</div>
+
+</section>
+
 {% endblock %}
