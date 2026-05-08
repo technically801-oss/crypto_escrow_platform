@@ -67,10 +67,44 @@ async def create_project(
     return templates.TemplateResponse('project_success.html', {'request': request, 'project': project, 'bot_url': bot_url, 'seller_bot_url': seller_bot_url})
 
 @router.get('/dashboard', response_class=HTMLResponse)
-async def dashboard(request: Request, telegram: str = '', db: AsyncSession = Depends(get_db)):
-    q = select(Project).order_by(Project.created_at.desc())
+async def dashboard(
+    request: Request,
+    telegram: str = '',
+    role: str = 'client',
+    db: AsyncSession = Depends(get_db),
+):
+    projects = []
+
     if telegram:
         username = telegram.lstrip('@')
-        q = q.where((Project.seller_telegram_username == username))
-    projects = (await db.scalars(q.limit(50))).all()
-    return templates.TemplateResponse('dashboard.html', {'request': request, 'projects': projects, 'telegram': telegram, 'bot_username': settings.telegram_bot_username})
+
+        user = await db.scalar(
+            select(User).where(User.telegram_username == username)
+        )
+
+        if role == 'seller':
+            q = (
+                select(Project)
+                .where(Project.seller_telegram_username == username)
+                .order_by(Project.created_at.desc())
+            )
+        else:
+            q = (
+                select(Project)
+                .join(User, Project.client_id == User.id)
+                .where(User.telegram_username == username)
+                .order_by(Project.created_at.desc())
+            )
+
+        projects = (await db.scalars(q.limit(50))).all()
+
+    return templates.TemplateResponse(
+        'dashboard.html',
+        {
+            'request': request,
+            'projects': projects,
+            'telegram': telegram,
+            'role': role,
+            'bot_username': settings.telegram_bot_username,
+        },
+    )
