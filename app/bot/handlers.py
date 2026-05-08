@@ -62,11 +62,40 @@ async def start(message: Message, bot: Bot):
             message.from_user.full_name,
         )
 
+        # Admin
         if is_admin(message.from_user.id):
             user.role = "admin"
             await session.commit()
             return await message.answer("Admin dashboard opened.", reply_markup=admin_menu())
 
+        # If normal /start but username has pending seller offers, show seller offers
+        pending_seller_offers = (
+            await session.scalars(
+                select(Project)
+                .where(Project.seller_telegram_username == username)
+                .where(Project.status == "Pending Discussion")
+                .order_by(Project.created_at.desc())
+            )
+        ).all()
+
+        if pending_seller_offers and start_arg == "":
+            user.role = "seller"
+
+            for project in pending_seller_offers[:5]:
+                project.seller_id = user.id
+                await message.answer(
+                    f"New project offer #{project.id}\n"
+                    f"Type: {project.project_type}\n"
+                    f"Budget: ${project.budget}\n"
+                    f"Timeline: {project.timeline_days} days\n\n"
+                    f"{project.description}",
+                    reply_markup=seller_offer(project.id),
+                )
+
+            await session.commit()
+            return
+
+        # Seller direct link: /start seller
         if start_arg == "seller":
             user.role = "seller"
             await session.commit()
@@ -99,6 +128,7 @@ async def start(message: Message, bot: Bot):
                 reply_markup=seller_menu(),
             )
 
+        # Client direct link: /start client
         if start_arg == "client":
             user.role = "client"
             await session.commit()
@@ -107,6 +137,7 @@ async def start(message: Message, bot: Bot):
                 reply_markup=client_menu(),
             )
 
+        # Project link: /start project_ID
         if start_arg.startswith("project_"):
             pid = int(start_arg.replace("project_", ""))
             project = await session.get(Project, pid)
@@ -138,6 +169,7 @@ async def start(message: Message, bot: Bot):
                     reply_markup=client_menu(),
                 )
 
+        # Default menu based on saved role
         if user.role == "seller":
             return await message.answer(
                 "Welcome seller. Manage your offers and projects here.",
@@ -148,7 +180,6 @@ async def start(message: Message, bot: Bot):
             "Welcome client. Use the website to create a project, then continue here.",
             reply_markup=client_menu(),
         )
-
 
 @router.callback_query(F.data.startswith("role:"))
 async def choose_role(call: CallbackQuery):
