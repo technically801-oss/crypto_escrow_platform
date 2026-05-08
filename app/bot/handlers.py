@@ -434,6 +434,10 @@ async def coin_select(call: CallbackQuery, bot: Bot):
     await notify_admins(bot, f"Payment started for project #{pid}. Waiting for TX hash.", pid)
     await call.answer()
 
+@router.message(Command("withdraw"))
+async def withdraw(message: Message):
+    STATE[message.from_user.id] = ("withdraw_amount", None)
+    await message.answer("Enter withdrawal amount.")
 
 @router.message(F.text)
 async def text_state(message: Message, bot: Bot):
@@ -782,8 +786,3 @@ async def withdraw_button(call: CallbackQuery):
     await call.message.answer("Enter withdrawal amount.")
     await call.answer()
 
-
-@router.message(Command("withdraw"))
-async def withdraw(message: Message):
-    STATE[message.from_user.id] = ("withdraw_amount", None)
-    await message.answer("Enter withdrawal amount.")
