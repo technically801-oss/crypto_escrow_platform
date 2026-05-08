@@ -1,4 +1,5 @@
 import os
+
 from fastapi import APIRouter, Depends, Form, Request, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -8,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.database import get_db
 from app.models import Project, User, ServiceCategory
+
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/web/templates")
@@ -22,9 +24,17 @@ def clean_username(username: str) -> str:
 
 async def current_user(request: Request, db: AsyncSession):
     user_id = request.session.get("user_id")
+
     if not user_id:
         return None
-    return await db.get(User, user_id)
+
+    user = await db.get(User, user_id)
+
+    if not user:
+        request.session.clear()
+        return None
+
+    return user
 
 
 def require_login(request: Request):
@@ -35,12 +45,18 @@ def require_login(request: Request):
 
 @router.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(
+        "index.html",
+        {"request": request},
+    )
 
 
 @router.get("/signup", response_class=HTMLResponse)
 async def signup_page(request: Request):
-    return templates.TemplateResponse("signup.html", {"request": request, "error": None})
+    return templates.TemplateResponse(
+        "signup.html",
+        {"request": request, "error": None},
+    )
 
 
 @router.post("/signup")
@@ -68,7 +84,10 @@ async def signup(
     if existing:
         return templates.TemplateResponse(
             "signup.html",
-            {"request": request, "error": "Email or Telegram username already exists."},
+            {
+                "request": request,
+                "error": "Email or Telegram username already exists.",
+            },
         )
 
     user = User(
@@ -91,7 +110,10 @@ async def signup(
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request, "error": None})
+    return templates.TemplateResponse(
+        "login.html",
+        {"request": request, "error": None},
+    )
 
 
 @router.post("/login")
@@ -108,7 +130,10 @@ async def login(
     if not user or user.password != password:
         return templates.TemplateResponse(
             "login.html",
-            {"request": request, "error": "Invalid email or password."},
+            {
+                "request": request,
+                "error": "Invalid email or password.",
+            },
         )
 
     request.session["user_id"] = user.id
@@ -124,12 +149,20 @@ async def logout(request: Request):
 
 
 @router.get("/create-project", response_class=HTMLResponse)
-async def create_project_page(request: Request, db: AsyncSession = Depends(get_db)):
+async def create_project_page(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
     login_redirect = require_login(request)
+
     if login_redirect:
         return login_redirect
 
     user = await current_user(request, db)
+
+    if not user:
+        request.session.clear()
+        return RedirectResponse("/login", status_code=303)
 
     if user.role != "client":
         return templates.TemplateResponse(
@@ -143,7 +176,9 @@ async def create_project_page(request: Request, db: AsyncSession = Depends(get_d
         )
 
     services = (
-        await db.scalars(select(ServiceCategory).where(ServiceCategory.active == True))
+        await db.scalars(
+            select(ServiceCategory).where(ServiceCategory.active == True)
+        )
     ).all()
 
     return templates.TemplateResponse(
@@ -169,12 +204,17 @@ async def create_project(
     db: AsyncSession = Depends(get_db),
 ):
     login_redirect = require_login(request)
+
     if login_redirect:
         return login_redirect
 
     user = await current_user(request, db)
 
-    if not user or user.role != "client":
+    if not user:
+        request.session.clear()
+        return RedirectResponse("/login", status_code=303)
+
+    if user.role != "client":
         return RedirectResponse("/dashboard", status_code=303)
 
     attachment_path = None
@@ -234,12 +274,20 @@ async def create_project(
 
 
 @router.get("/dashboard", response_class=HTMLResponse)
-async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
+async def dashboard(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
     login_redirect = require_login(request)
+
     if login_redirect:
         return login_redirect
 
     user = await current_user(request, db)
+
+    if not user:
+        request.session.clear()
+        return RedirectResponse("/login", status_code=303)
 
     if user.role == "seller":
         q = (
