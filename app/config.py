@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     telegram_bot_username: str = ''
     database_url: str = 'sqlite+aiosqlite:///./escrow.db'
     admin_chat_ids: str = ''
-    secret_key: str = "change-this-secret-key"
+    secret_key: str = "@Sulaimon3500"
 
     usdt_wallet_address: str = ''
     usdc_wallet_address: str = ''
