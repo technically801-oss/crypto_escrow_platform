@@ -5,7 +5,7 @@ import qrcode
 from aiogram import Router, F, Bot
 from aiogram.filters import CommandStart, Command
 from aiogram.types import Message, CallbackQuery, BufferedInputFile
-from sqlalchemy import select
+from sqlalchemy import select, funct
 
 from app.config import settings
 from app.database import AsyncSessionLocal
@@ -52,7 +52,7 @@ async def notify_admins(bot: Bot, text: str, project_id: int | None = None):
 async def start(message: Message, bot: Bot):
     args = (message.text or "").split(maxsplit=1)
     start_arg = args[1] if len(args) > 1 else ""
-    username = (message.from_user.username or "").lstrip("@")
+    username = (message.from_user.username or "").lstrip("@").lower()
 
     async with AsyncSessionLocal() as session:
         user = await get_or_create_user(
@@ -72,7 +72,7 @@ async def start(message: Message, bot: Bot):
         pending_seller_offers = (
             await session.scalars(
                 select(Project)
-                .where(Project.seller_telegram_username == username)
+                .where(func.lower(Project.seller_telegram_username) == username)
                 .where(Project.status == "Pending Discussion")
                 .order_by(Project.created_at.desc())
             )
@@ -103,7 +103,7 @@ async def start(message: Message, bot: Bot):
             offers = (
                 await session.scalars(
                     select(Project)
-                    .where(Project.seller_telegram_username == username)
+                    .where(func.lower(Project.seller_telegram_username) == username)
                     .where(Project.status == "Pending Discussion")
                     .order_by(Project.created_at.desc())
                 )
@@ -145,7 +145,7 @@ async def start(message: Message, bot: Bot):
             if project:
                 if (
                     project.seller_telegram_username
-                    and project.seller_telegram_username.lower() == username.lower()
+                    and project.seller_telegram_username.lower() == username
                 ):
                     project.seller_id = user.id
                     user.role = "seller"
@@ -391,7 +391,7 @@ async def text_state(message: Message, bot: Bot):
         return
 
     action, pid = state
-    username = (message.from_user.username or "").lstrip("@")
+    username = (message.from_user.username or "").lstrip("@").lower()
 
     async with AsyncSessionLocal() as session:
         user = await get_or_create_user(
