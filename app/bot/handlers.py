@@ -181,6 +181,54 @@ async def start(message: Message, bot: Bot):
             reply_markup=client_menu(),
         )
 
+@router.callback_query(F.data == "menu:seller_offers")
+async def seller_offers(call: CallbackQuery):
+    username = (call.from_user.username or "").lstrip("@").lower()
+
+    async with AsyncSessionLocal() as session:
+        user = await get_or_create_user(
+            session,
+            call.from_user.id,
+            username,
+            call.from_user.full_name,
+            "seller",
+        )
+
+        user.role = "seller"
+
+        offers = (
+            await session.scalars(
+                select(Project)
+                .where(func.lower(Project.seller_telegram_username) == username)
+                .where(Project.status == "Pending Discussion")
+                .order_by(Project.created_at.desc())
+            )
+        ).all()
+
+        if not offers:
+            await session.commit()
+            await call.message.answer(
+                f"No new offers found for @{username}.\n\n"
+                f"Make sure the client entered your exact Telegram username."
+            )
+            await call.answer()
+            return
+
+        for project in offers[:10]:
+            project.seller_id = user.id
+            await call.message.answer(
+                f"New project offer #{project.id}\n"
+                f"Type: {project.project_type}\n"
+                f"Budget: ${project.budget}\n"
+                f"Timeline: {project.timeline_days} days\n\n"
+                f"{project.description}",
+                reply_markup=seller_offer(project.id),
+            )
+
+        await session.commit()
+
+    await call.answer()
+
 @router.callback_query(F.data.startswith("role:"))
 async def choose_role(call: CallbackQuery):
     role = call.data.split(":")[1]
